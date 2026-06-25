@@ -1,0 +1,1107 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>پنل مدیریت</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800&display=swap');
+
+:root {
+  /* ── single base color — everything sits on this ── */
+  --base: #1a1a22;
+  --base-light: #22222e;   /* slightly lighter face */
+  --base-dark:  #111118;   /* slightly darker shadow */
+
+  --gold: #c9a84c;
+  --gold-light: #e8c97a;
+  --gold-dim: rgba(201,168,76,0.10);
+  --text: #dedad0;
+  --muted: #6a6880;
+  --muted2: #4a4860;
+  --red: #e05555;
+  --green: #4caf82;
+  --r: 18px;
+  --rs: 12px;
+  --sw: 240px;
+
+  /* ── TRUE neumorphic shadows — light from top-right ── */
+  /* raised: dark shadow bottom-left, light highlight top-right */
+  --nm-up:
+    6px 6px 14px #0d0d13,
+    -4px -4px 10px #272733;
+  --nm-up-sm:
+    4px 4px 10px #0d0d13,
+    -2px -2px 7px #252531;
+  --nm-up-lg:
+    10px 10px 22px #0a0a10,
+    -5px -5px 14px #28283a;
+
+  /* pressed / inset */
+  --nm-in:
+    inset 4px 4px 10px #0d0d13,
+    inset -3px -3px 8px #272733;
+  --nm-in-sm:
+    inset 2px 2px 6px #0e0e14,
+    inset -2px -2px 5px #252531;
+
+  /* gold accent glow */
+  --nm-gold: 0 0 16px rgba(201,168,76,0.20);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+body {
+  font-family: 'Vazirmatn', sans-serif;
+  background: var(--base);
+  color: var(--text);
+  min-height: 100vh;
+  direction: rtl;
+  overflow-x: hidden;
+}
+
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: var(--base-dark); }
+::-webkit-scrollbar-thumb { background: var(--muted2); border-radius: 4px; }
+
+/* ── DRAWER OVERLAY ── */
+.drawer-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.6); z-index: 150;
+  backdrop-filter: blur(4px);
+}
+.drawer-overlay.open { display: block; }
+
+/* ── SIDEBAR ── */
+.sidebar {
+  position: fixed; right: 0; top: 0; bottom: 0;
+  width: var(--sw);
+  background: var(--base);
+  border-left: none;
+  display: flex; flex-direction: column;
+  z-index: 160; padding-bottom: 20px;
+  transition: transform 0.32s cubic-bezier(.4,0,.2,1);
+  box-shadow: -8px 0 24px #0a0a10, -1px 0 0 #272733;
+}
+
+.logo {
+  padding: 22px 18px 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  margin-bottom: 8px;
+}
+.logo-row { display: flex; align-items: center; justify-content: space-between; }
+.logo-icon { font-size: 22px; margin-bottom: 6px; display: block; }
+.logo-title {
+  font-size: 16px; font-weight: 800; color: var(--gold);
+  background: none; border: none;
+  font-family: 'Vazirmatn', sans-serif; direction: rtl;
+  flex: 1; min-width: 0;
+}
+.logo-title:focus { outline: 2px solid var(--gold); border-radius: 4px; }
+.sidebar-close-btn {
+  display: none;
+  background: var(--base); border: none;
+  color: var(--muted); font-size: 20px; cursor: pointer;
+  padding: 5px 8px; line-height: 1; border-radius: 8px;
+  box-shadow: var(--nm-up-sm);
+  transition: all 0.18s;
+}
+.sidebar-close-btn:hover { color: var(--text); }
+.sidebar-close-btn:active { box-shadow: var(--nm-in-sm); }
+.logo-sub { font-size: 10px; color: var(--muted2); margin-top: 3px; }
+.logo-hint { font-size: 10px; color: var(--muted2); opacity: 0.5; margin-top: 2px; }
+
+.nav-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 11px 16px; margin: 3px 10px;
+  border-radius: 12px; cursor: pointer;
+  font-size: 13px; font-weight: 500; color: var(--muted);
+  transition: all 0.18s; border: none;
+  user-select: none; position: relative;
+  background: transparent;
+}
+.nav-item:hover {
+  background: var(--base);
+  color: var(--text);
+  box-shadow: var(--nm-up-sm);
+}
+.nav-item.active {
+  background: var(--base);
+  color: var(--gold-light);
+  box-shadow: var(--nm-in);
+}
+.nav-item.active::before {
+  content: '';
+  position: absolute; right: -10px; top: 50%;
+  transform: translateY(-50%);
+  width: 3px; height: 18px;
+  background: var(--gold);
+  border-radius: 2px 0 0 2px;
+  box-shadow: 0 0 10px rgba(201,168,76,0.6);
+}
+.nav-icon { font-size: 17px; min-width: 22px; text-align: center; }
+
+.sidebar-footer {
+  margin-top: auto; padding: 14px 16px 0;
+  border-top: 1px solid rgba(255,255,255,0.04);
+}
+.time-display { font-size: 11px; color: var(--muted); line-height: 2; }
+.time-display .t {
+  display: block; color: var(--gold); font-size: 22px; font-weight: 800; letter-spacing: 2px;
+  text-shadow: 0 0 16px rgba(201,168,76,0.35);
+}
+
+/* ── TOPBAR (mobile) ── */
+.topbar {
+  display: none; position: fixed; top: 0; left: 0; right: 0;
+  height: 54px; background: var(--base);
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  z-index: 140; align-items: center;
+  justify-content: space-between; padding: 0 14px;
+  box-shadow: 0 4px 14px #0a0a10;
+}
+.topbar-title { font-size: 14px; font-weight: 700; color: var(--gold); }
+.topbar-time { font-size: 10px; color: var(--muted); text-align: left; }
+.topbar-time .tt { color: var(--gold); font-size: 13px; font-weight: 700; }
+
+.hamburger {
+  background: var(--base); border: none;
+  border-radius: 10px; color: var(--text);
+  font-size: 17px; cursor: pointer; padding: 7px 11px;
+  line-height: 1; transition: all 0.18s;
+  box-shadow: var(--nm-up-sm);
+}
+.hamburger:hover { box-shadow: var(--nm-up), var(--nm-gold); color: var(--gold); }
+.hamburger:active { box-shadow: var(--nm-in-sm); transform: scale(0.97); }
+
+/* ── MAIN ── */
+.main { margin-right: var(--sw); min-height: 100vh; padding: 24px 26px; }
+
+/* ── PAGES ── */
+.page { display: none; animation: fadeIn 0.22s ease; }
+.page.active { display: block; }
+@keyframes fadeIn { from { opacity:0; transform:translateY(5px); } to { opacity:1; transform:none; } }
+
+/* ── PAGE HEADER ── */
+.page-header {
+  margin-bottom: 22px; display: flex; align-items: center;
+  justify-content: space-between; flex-wrap: wrap; gap: 10px;
+}
+.page-header h2 { font-size: 20px; font-weight: 700; }
+.page-header h2 span { color: var(--gold); }
+
+/* ── STAT CARDS (unused but kept) ── */
+.stats-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; margin-bottom: 20px; }
+.stat-card {
+  background: var(--base); border-radius: var(--r); padding: 20px 18px;
+  position: relative; overflow: hidden;
+  box-shadow: var(--nm-up);
+  transition: box-shadow 0.2s;
+}
+.stat-card::before {
+  content: ''; position: absolute; top: 0; right: 0; left: 0; height: 2px;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent); opacity: 0.5;
+}
+.stat-icon { font-size: 22px; margin-bottom: 10px; display: block; }
+.stat-label { font-size: 11px; color: var(--muted); margin-bottom: 6px; font-weight: 500; }
+.stat-value { font-size: 26px; font-weight: 800; color: var(--gold-light); line-height: 1; }
+.stat-sub { font-size: 10px; color: var(--muted2); margin-top: 4px; }
+
+/* ── BUTTONS ── */
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 10px 20px; border-radius: var(--rs);
+  font-family: 'Vazirmatn', sans-serif; font-size: 13px;
+  font-weight: 600; cursor: pointer; border: none;
+  transition: all 0.18s; white-space: nowrap;
+  background: var(--base);
+}
+
+.btn-gold {
+  background: linear-gradient(145deg, #d4ad50, #b88c28);
+  color: #0c0c10;
+  box-shadow:
+    5px 5px 12px #0a0a10,
+    -2px -2px 7px #272730,
+    inset 0 1px 0 rgba(255,255,255,0.3),
+    var(--nm-gold);
+}
+.btn-gold:hover {
+  background: linear-gradient(145deg, #e0b858, #c89a30);
+  box-shadow:
+    7px 7px 16px #090910,
+    -3px -3px 9px #282834,
+    inset 0 1px 0 rgba(255,255,255,0.35),
+    0 0 22px rgba(201,168,76,0.4);
+  transform: translateY(-2px);
+}
+.btn-gold:active {
+  box-shadow: var(--nm-in), 0 0 10px rgba(201,168,76,0.15);
+  transform: translateY(0) scale(0.98);
+  background: linear-gradient(145deg, #b88c28, #d4ad50);
+}
+
+.btn-outline {
+  background: var(--base); color: var(--muted);
+  box-shadow: var(--nm-up-sm);
+}
+.btn-outline:hover {
+  color: var(--gold);
+  box-shadow: var(--nm-up), var(--nm-gold);
+}
+.btn-outline:active { box-shadow: var(--nm-in-sm); color: var(--gold); }
+
+.btn-danger {
+  background: var(--base); color: var(--red);
+  padding: 5px 10px; font-size: 11px;
+  box-shadow: 3px 3px 8px #0d0d13, -2px -2px 5px #252531;
+}
+.btn-danger:hover {
+  box-shadow: 4px 4px 10px #0a0a10, -2px -2px 6px #272733, 0 0 10px rgba(224,85,85,0.15);
+}
+.btn-danger:active { box-shadow: var(--nm-in-sm); }
+
+/* ── PANELS ── */
+.panel {
+  background: var(--base);
+  border-radius: var(--r);
+  overflow: hidden;
+  box-shadow: var(--nm-up-lg);
+}
+.panel-header {
+  padding: 14px 18px;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 8px;
+}
+.panel-title { font-size: 13px; font-weight: 700; color: var(--text); display: flex; align-items: center; gap: 7px; }
+.panel-title-icon { font-size: 15px; }
+.table-scroll { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; min-width: 360px; }
+th {
+  text-align: right; padding: 9px 14px;
+  font-size: 11px; font-weight: 600; color: var(--muted);
+  background: var(--base-dark);
+  border-bottom: 1px solid rgba(255,255,255,0.04); white-space: nowrap;
+}
+td { padding: 11px 14px; font-size: 13px; border-bottom: 1px solid rgba(255,255,255,0.03); }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: rgba(255,255,255,0.012); }
+
+/* ── MODAL ── */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.75); z-index: 300;
+  display: none; align-items: center; justify-content: center;
+  padding: 16px; backdrop-filter: blur(8px);
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: var(--base);
+  border-radius: var(--r); width: 420px;
+  max-width: 100%; max-height: 92vh; overflow-y: auto;
+  padding: 26px; position: relative;
+  box-shadow: var(--nm-up-lg), 0 0 30px rgba(201,168,76,0.06);
+}
+.modal-top {
+  position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  opacity: 0.6; border-radius: var(--r) var(--r) 0 0;
+}
+.modal h3 { font-size: 15px; font-weight: 700; margin-bottom: 20px; color: var(--gold-light); }
+.modal-close {
+  position: absolute; top: 12px; left: 12px;
+  background: var(--base); border: none;
+  color: var(--muted); font-size: 16px; cursor: pointer;
+  line-height: 1; padding: 6px 9px; border-radius: 8px;
+  box-shadow: var(--nm-up-sm); transition: all 0.18s;
+}
+.modal-close:hover { color: var(--text); box-shadow: var(--nm-up); }
+.modal-close:active { box-shadow: var(--nm-in-sm); }
+
+/* ── FORM ── */
+.form-group { margin-bottom: 14px; }
+.form-group label { display: block; font-size: 11px; color: var(--muted); margin-bottom: 7px; font-weight: 600; letter-spacing: 0.3px; }
+.form-group input,
+.form-group select {
+  width: 100%;
+  background: var(--base);
+  border: none;
+  border-radius: var(--rs); padding: 11px 13px;
+  font-family: 'Vazirmatn', sans-serif; font-size: 14px;
+  color: var(--text); outline: none;
+  transition: box-shadow 0.2s; direction: rtl;
+  box-shadow: var(--nm-in);
+}
+.form-group input:focus,
+.form-group select:focus {
+  box-shadow: var(--nm-in), 0 0 0 2px rgba(201,168,76,0.2), 0 0 12px rgba(201,168,76,0.1);
+}
+.form-group select option { background: var(--base); }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.form-actions { display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end; }
+
+/* ── BADGE ── */
+.badge {
+  display: inline-flex; align-items: center;
+  padding: 3px 10px; border-radius: 20px;
+  font-size: 11px; font-weight: 600; white-space: nowrap;
+  background: var(--base);
+}
+.badge-green { box-shadow: var(--nm-in-sm); color: var(--green); }
+.badge-red { box-shadow: var(--nm-in-sm); color: var(--red); }
+.badge-gold { box-shadow: var(--nm-in-sm); color: var(--gold-light); }
+
+/* ── CHART ── */
+.chart-wrap {
+  background: var(--base);
+  border-radius: var(--r);
+  padding: 20px; margin-bottom: 16px;
+  box-shadow: var(--nm-up-lg);
+}
+.chart-title { font-size: 13px; font-weight: 700; margin-bottom: 16px; color: var(--muted); }
+.chart-title span { color: var(--text); }
+canvas { max-height: 240px; }
+
+/* ── LAYOUTS ── */
+.income-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.quick-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 18px; }
+.shop-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+
+/* ── SHOPPING ── */
+.shop-item { display: flex; align-items: center; gap: 10px; padding: 11px 16px; border-bottom: 1px solid rgba(255,255,255,0.03); }
+.shop-item:last-child { border-bottom: none; }
+.shop-check {
+  width: 20px; height: 20px; border-radius: 6px;
+  border: none; cursor: pointer; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  transition: all .2s;
+  background: var(--base);
+  box-shadow: var(--nm-in-sm);
+}
+.shop-check.checked {
+  background: var(--green);
+  box-shadow: 2px 2px 6px #0a0a10, -1px -1px 4px #272733, 0 0 12px rgba(76,175,130,0.35);
+}
+.shop-check.checked::after { content: '✓'; font-size: 12px; color: #fff; font-weight: 700; }
+.shop-name { flex: 1; font-size: 13px; }
+.shop-name.done { text-decoration: line-through; color: var(--muted); }
+.shop-price { font-size: 12px; color: var(--gold); font-weight: 600; min-width: 60px; text-align: left; }
+
+/* ── SEARCH ── */
+.search-bar { position: relative; width: 190px; }
+.search-bar input {
+  width: 100%; background: var(--base); border: none;
+  border-radius: var(--rs);
+  padding: 8px 30px 8px 10px; font-family: 'Vazirmatn',sans-serif;
+  font-size: 12px; color: var(--text); outline: none; direction: rtl;
+  box-shadow: var(--nm-in-sm);
+  transition: box-shadow 0.2s;
+}
+.search-bar input:focus { box-shadow: var(--nm-in), 0 0 10px rgba(201,168,76,0.08); }
+.search-bar::before { content: '🔍'; position: absolute; right: 9px; top: 50%; transform: translateY(-50%); font-size: 12px; pointer-events: none; }
+
+.tag-today {
+  font-size: 11px; color: var(--gold);
+  padding: 5px 14px; border-radius: 20px; white-space: nowrap; font-weight: 600;
+  background: var(--base);
+  box-shadow: var(--nm-in-sm);
+}
+
+.empty { text-align: center; padding: 36px 16px; color: var(--muted); }
+.empty-icon { font-size: 34px; margin-bottom: 10px; opacity: 0.4; }
+.empty p { font-size: 13px; }
+
+/* ═══════════════════════════════════
+   DASHBOARD SPECIAL STYLES
+═══════════════════════════════════ */
+
+/* Income banner */
+.income-banner {
+  background: var(--base);
+  border-radius: var(--r);
+  padding: 22px 24px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  position: relative;
+  overflow: hidden;
+  box-shadow:
+    var(--nm-up-lg),
+    0 0 30px rgba(201,168,76,0.07);
+}
+.income-banner::before {
+  content: '';
+  position: absolute; top: 0; right: 0; bottom: 0;
+  width: 3px;
+  background: linear-gradient(180deg, transparent, var(--gold), transparent);
+  box-shadow: 0 0 12px rgba(201,168,76,0.5);
+}
+.income-banner::after {
+  content: '';
+  position: absolute; top: -50px; left: -50px;
+  width: 160px; height: 160px;
+  background: radial-gradient(circle, rgba(201,168,76,0.04) 0%, transparent 70%);
+}
+.income-banner-label { font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+.income-banner-value {
+  font-size: 34px; font-weight: 800; color: var(--gold-light);
+  line-height: 1; letter-spacing: -0.5px;
+  text-shadow: 0 0 24px rgba(201,168,76,0.4);
+}
+.income-banner-sub { font-size: 11px; color: var(--muted2); margin-top: 4px; }
+.income-banner-date {
+  font-size: 12px; color: var(--gold);
+  padding: 5px 14px; border-radius: 20px; white-space: nowrap;
+  background: var(--base);
+  box-shadow: var(--nm-in-sm);
+}
+
+/* Appointment cards */
+.appt-card {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+  transition: background 0.15s;
+}
+.appt-card:last-child { border-bottom: none; }
+.appt-card:hover { background: rgba(255,255,255,0.01); }
+
+.appt-time-box {
+  background: var(--base);
+  border-radius: 12px;
+  padding: 9px 13px;
+  text-align: center;
+  min-width: 58px;
+  flex-shrink: 0;
+  box-shadow: var(--nm-in);
+}
+.appt-time-num { font-size: 15px; font-weight: 800; color: var(--gold-light); line-height: 1; text-shadow: 0 0 10px rgba(201,168,76,0.3); }
+.appt-time-lbl { font-size: 9px; color: var(--muted); margin-top: 2px; }
+.appt-info { flex: 1; min-width: 0; }
+.appt-name { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.appt-phone { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+/* Shop dashboard items */
+.dash-shop-item { display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-bottom: 1px solid rgba(255,255,255,0.03); }
+.dash-shop-item:last-child { border-bottom: none; }
+.dash-shop-dot {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+  background: var(--base);
+  box-shadow: var(--nm-up-sm), 0 0 8px rgba(201,168,76,0.4);
+  border: 2px solid var(--gold);
+}
+.dash-shop-name { flex: 1; font-size: 13px; }
+.dash-shop-price { font-size: 11px; color: var(--gold); font-weight: 600; }
+
+/* Mini stat cards */
+.dash-summary { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; margin-bottom: 20px; }
+.dash-mini-card {
+  background: var(--base);
+  border-radius: 14px;
+  padding: 18px 14px;
+  position: relative; overflow: hidden;
+  box-shadow: var(--nm-up);
+  transition: box-shadow 0.22s, transform 0.22s;
+  cursor: default;
+}
+.dash-mini-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--nm-up-lg), var(--nm-gold);
+}
+.dash-mini-card::after {
+  content: '';
+  position: absolute; bottom: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  opacity: 0.3;
+}
+.dmc-icon { font-size: 20px; margin-bottom: 9px; }
+.dmc-val { font-size: 24px; font-weight: 800; color: var(--gold-light); line-height: 1; }
+.dmc-label { font-size: 10px; color: var(--muted); margin-top: 5px; }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 768px) {
+  .sidebar { transform: translateX(100%); box-shadow: -6px 0 30px #080810; }
+  .sidebar.open { transform: translateX(0); }
+  .sidebar-close-btn { display: block; }
+  .topbar { display: flex; }
+
+  .main { margin-right: 0; padding: 10px; padding-top: calc(54px + 10px); padding-bottom: 16px; }
+
+  .dash-summary { grid-template-columns: 1fr 1fr; gap: 12px; }
+  .dmc-val { font-size: 20px; }
+  .income-banner-value { font-size: 26px; }
+
+  .income-grid { grid-template-columns: 1fr; }
+  .quick-grid { grid-template-columns: 1fr; }
+  .shop-cols { grid-template-columns: 1fr; }
+
+  .form-row { grid-template-columns: 1fr; }
+  .search-bar { width: 100%; }
+  .page-header h2 { font-size: 16px; }
+  .btn { padding: 9px 13px; font-size: 12px; }
+}
+</style>
+</head>
+<body>
+
+<div class="drawer-overlay" id="drawer-overlay" onclick="closeSidebar()"></div>
+
+<!-- SIDEBAR -->
+<nav class="sidebar" id="sidebar">
+  <div class="logo">
+    <div class="logo-row">
+      <div>
+        <span class="logo-icon">💈</span>
+        <input class="logo-title" id="app-title" type="text" value="پنل مدیریت" maxlength="28" oninput="updateTitle(this.value)">
+      </div>
+      <button class="sidebar-close-btn" onclick="closeSidebar()">✕</button>
+    </div>
+    <div class="logo-sub">سیستم مدیریت هوشمند</div>
+    <div class="logo-hint">✏️ برای تغییر نام کلیک کنید</div>
+  </div>
+
+  <div style="margin-top:4px;">
+    <div class="nav-item active" onclick="showPage('dashboard',this)"><span class="nav-icon">🏠</span> داشبورد</div>
+    <div class="nav-item" onclick="showPage('appointments',this)"><span class="nav-icon">📅</span> نوبت‌ها</div>
+    <div class="nav-item" onclick="showPage('customers',this)"><span class="nav-icon">👤</span> مشتریان</div>
+    <div class="nav-item" onclick="showPage('income',this)"><span class="nav-icon">💰</span> درآمد</div>
+    <div class="nav-item" onclick="showPage('shopping',this)"><span class="nav-icon">🛒</span> لیست خرید</div>
+  </div>
+
+  <div class="sidebar-footer">
+    <div class="time-display">
+      <span class="t" id="st">--:--</span>
+      <div id="sd" style="font-size:11px;"></div>
+    </div>
+  </div>
+</nav>
+
+<!-- MOBILE TOPBAR -->
+<div class="topbar">
+  <div style="display:flex;align-items:center;gap:10px;">
+    <button class="hamburger" onclick="openSidebar()">☰</button>
+    <div class="topbar-title" id="topbar-title">پنل مدیریت</div>
+  </div>
+  <div class="topbar-time">
+    <div class="tt" id="mt">--:--</div>
+    <div id="md"></div>
+  </div>
+</div>
+
+<main class="main">
+
+  <!-- ═══ DASHBOARD ═══ -->
+  <div class="page active" id="page-dashboard">
+
+    <div class="page-header">
+      <h2>داشبورد <span>امروز</span></h2>
+      <div id="dashboard-date" class="tag-today"></div>
+    </div>
+
+    <!-- Income Banner -->
+    <div class="income-banner">
+      <div>
+        <div class="income-banner-label">💰 درآمد امروز</div>
+        <div class="income-banner-value" id="db-income">۰</div>
+        <div class="income-banner-sub" id="db-income-date">هنوز درآمدی ثبت نشده</div>
+      </div>
+      <div style="text-align:left;">
+        <div class="income-banner-date" id="db-today-date"></div>
+        <div style="font-size:11px;color:var(--muted);margin-top:6px;" id="db-month-income"></div>
+      </div>
+    </div>
+
+    <!-- Mini stats -->
+    <div class="dash-summary">
+      <div class="dash-mini-card">
+        <div class="dmc-icon">📅</div>
+        <div class="dmc-val" id="s1">۰</div>
+        <div class="dmc-label">نوبت امروز</div>
+      </div>
+      <div class="dash-mini-card">
+        <div class="dmc-icon">👤</div>
+        <div class="dmc-val" id="s3">۰</div>
+        <div class="dmc-label">کل مشتریان</div>
+      </div>
+      <div class="dash-mini-card">
+        <div class="dmc-icon">🛒</div>
+        <div class="dmc-val" id="s4">۰</div>
+        <div class="dmc-label">اقلام خرید</div>
+      </div>
+      <div class="dash-mini-card">
+        <div class="dmc-icon">✅</div>
+        <div class="dmc-val" id="s5">۰</div>
+        <div class="dmc-label">نوبت انجام‌شده</div>
+      </div>
+    </div>
+
+    <!-- Bottom grid -->
+    <div class="quick-grid">
+      <!-- Today appointments -->
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title"><span class="panel-title-icon">📅</span> نوبت‌های امروز</span>
+          <button class="btn btn-gold" style="padding:5px 12px;font-size:11px;" onclick="showPage('appointments', document.querySelectorAll('.nav-item')[1])">+ ثبت نوبت</button>
+        </div>
+        <div id="dash-appts"><div class="empty"><div class="empty-icon">📅</div><p>نوبتی برای امروز ثبت نشده</p></div></div>
+      </div>
+
+      <!-- Shopping list -->
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title"><span class="panel-title-icon">🛒</span> لیست خرید</span>
+          <span id="dash-shop-total" style="font-size:11px;color:var(--gold);font-weight:600;"></span>
+        </div>
+        <div id="dash-shop"><div class="empty"><div class="empty-icon">🛒</div><p>لیست خرید خالی</p></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ APPOINTMENTS ═══ -->
+  <div class="page" id="page-appointments">
+    <div class="page-header">
+      <h2>مدیریت <span>نوبت‌ها</span></h2>
+      <button class="btn btn-gold" onclick="openModal('m-appt')">+ ثبت نوبت</button>
+    </div>
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">لیست نوبت‌ها</span>
+        <div class="search-bar"><input type="text" placeholder="جستجو..." oninput="filterTable('appt-tb',this.value)"></div>
+      </div>
+      <div class="table-scroll">
+        <table><thead><tr><th>نام</th><th>تلفن</th><th>تاریخ</th><th>ساعت</th><th>وضعیت</th><th>عملیات</th></tr></thead>
+        <tbody id="appt-tb"><tr><td colspan="6"><div class="empty"><div class="empty-icon">📅</div><p>نوبتی ثبت نشده</p></div></td></tr></tbody></table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ CUSTOMERS ═══ -->
+  <div class="page" id="page-customers">
+    <div class="page-header">
+      <h2>مدیریت <span>مشتریان</span></h2>
+      <button class="btn btn-gold" onclick="openModal('m-cust')">+ افزودن مشتری</button>
+    </div>
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">لیست مشتریان</span>
+        <div class="search-bar"><input type="text" placeholder="جستجو..." oninput="filterTable('cust-tb',this.value)"></div>
+      </div>
+      <div class="table-scroll">
+        <table><thead><tr><th>نام و نام خانوادگی</th><th>تلفن</th><th>تاریخ ثبت</th><th>عملیات</th></tr></thead>
+        <tbody id="cust-tb"><tr><td colspan="4"><div class="empty"><div class="empty-icon">👤</div><p>مشتری ثبت نشده</p></div></td></tr></tbody></table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ INCOME ═══ -->
+  <div class="page" id="page-income">
+    <div class="page-header">
+      <h2>مدیریت <span>درآمد</span></h2>
+      <button class="btn btn-gold" onclick="openModal('m-inc')">+ ثبت درآمد</button>
+    </div>
+    <div class="income-grid">
+      <div>
+        <div class="chart-wrap">
+          <div class="chart-title"><span>نمودار درآمد ۶ ماه اخیر</span></div>
+          <canvas id="income-chart"></canvas>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="dash-mini-card">
+            <div class="dmc-icon">📈</div>
+            <div class="dmc-val" id="inc-this">۰</div>
+            <div class="dmc-label">درآمد این ماه (تومان)</div>
+          </div>
+          <div class="dash-mini-card">
+            <div class="dmc-icon">📉</div>
+            <div class="dmc-val" id="inc-last">۰</div>
+            <div class="dmc-label">درآمد ماه قبل (تومان)</div>
+          </div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-header"><span class="panel-title">تاریخچه درآمد</span></div>
+        <div class="table-scroll">
+          <table><thead><tr><th>تاریخ</th><th>مبلغ (تومان)</th><th>توضیح</th><th></th></tr></thead>
+          <tbody id="inc-tb"><tr><td colspan="4"><div class="empty"><div class="empty-icon">💰</div><p>درآمدی ثبت نشده</p></div></td></tr></tbody></table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ SHOPPING ═══ -->
+  <div class="page" id="page-shopping">
+    <div class="page-header">
+      <h2>لیست <span>خرید</span></h2>
+      <button class="btn btn-gold" onclick="openModal('m-shop')">+ افزودن آیتم</button>
+    </div>
+    <div class="shop-cols">
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">باقی‌مانده</span>
+          <span id="shop-total" style="font-size:12px;color:var(--gold);font-weight:600;"></span>
+        </div>
+        <div id="shop-pending"><div class="empty" style="padding:28px;"><p>خالی</p></div></div>
+      </div>
+      <div class="panel">
+        <div class="panel-header"><span class="panel-title">خریداری شده ✓</span></div>
+        <div id="shop-done"><div class="empty" style="padding:28px;"><p>خالی</p></div></div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- MODALS -->
+<div class="modal-overlay" id="m-appt">
+  <div class="modal">
+    <div class="modal-top"></div>
+    <button class="modal-close" onclick="closeModal('m-appt')">✕</button>
+    <h3>📅 ثبت نوبت جدید</h3>
+    <div class="form-group"><label>نام مشتری</label><input type="text" id="a-name" placeholder="نام و نام خانوادگی"></div>
+    <div class="form-group"><label>شماره تلفن</label><input type="tel" id="a-phone" placeholder="09xxxxxxxxx"></div>
+    <div class="form-row">
+      <div class="form-group"><label>تاریخ (شمسی)</label><input type="text" id="a-date" placeholder="۱۴۰۴/۰۱/۰۱"></div>
+      <div class="form-group"><label>ساعت</label><input type="text" id="a-time" placeholder="۱۰:۳۰"></div>
+    </div>
+    <div class="form-group"><label>وضعیت</label>
+      <select id="a-status">
+        <option value="pending">در انتظار</option>
+        <option value="done">انجام شد</option>
+        <option value="cancelled">لغو شد</option>
+      </select>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-outline" onclick="closeModal('m-appt')">انصراف</button>
+      <button class="btn btn-gold" onclick="saveAppt()">ذخیره نوبت</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="m-cust">
+  <div class="modal">
+    <div class="modal-top"></div>
+    <button class="modal-close" onclick="closeModal('m-cust')">✕</button>
+    <h3>👤 افزودن مشتری</h3>
+    <div class="form-row">
+      <div class="form-group"><label>نام</label><input type="text" id="c-fn" placeholder="نام"></div>
+      <div class="form-group"><label>نام خانوادگی</label><input type="text" id="c-ln" placeholder="نام خانوادگی"></div>
+    </div>
+    <div class="form-group"><label>شماره تلفن</label><input type="tel" id="c-ph" placeholder="09xxxxxxxxx"></div>
+    <div class="form-actions">
+      <button class="btn btn-outline" onclick="closeModal('m-cust')">انصراف</button>
+      <button class="btn btn-gold" onclick="saveCust()">ذخیره</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="m-inc">
+  <div class="modal">
+    <div class="modal-top"></div>
+    <button class="modal-close" onclick="closeModal('m-inc')">✕</button>
+    <h3>💰 ثبت درآمد روزانه</h3>
+    <div class="form-group"><label>تاریخ (شمسی)</label><input type="text" id="i-date" placeholder="۱۴۰۴/۰۱/۰۱"></div>
+    <div class="form-group"><label>مبلغ (تومان)</label><input type="number" id="i-amt" placeholder="مثال: ۵۰۰۰۰۰" inputmode="numeric"></div>
+    <div class="form-group"><label>توضیحات (اختیاری)</label><input type="text" id="i-note" placeholder="مثال: روز شلوغ"></div>
+    <div class="form-actions">
+      <button class="btn btn-outline" onclick="closeModal('m-inc')">انصراف</button>
+      <button class="btn btn-gold" onclick="saveInc()">ذخیره</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="m-shop">
+  <div class="modal">
+    <div class="modal-top"></div>
+    <button class="modal-close" onclick="closeModal('m-shop')">✕</button>
+    <h3>🛒 افزودن به لیست خرید</h3>
+    <div class="form-group"><label>نام کالا</label><input type="text" id="sh-name" placeholder="مثال: ژل مو، تیغ..."></div>
+    <div class="form-group"><label>قیمت تخمینی (تومان) — اختیاری</label><input type="number" id="sh-price" placeholder="مثال: ۱۵۰۰۰۰" inputmode="numeric"></div>
+    <div class="form-actions">
+      <button class="btn btn-outline" onclick="closeModal('m-shop')">انصراف</button>
+      <button class="btn btn-gold" onclick="saveShop()">ذخیره</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ══ JALALI ══ */
+function toJalali(gy,gm,gd){
+  var g=[31,28,31,30,31,30,31,31,30,31,30,31],j=[31,31,31,31,31,31,30,30,30,30,30,29],i,gdn,jdn,jnp,jy,jm,jd;
+  gy-=1600;gm-=1;gd-=1;
+  gdn=365*gy+Math.floor((gy+3)/4)-Math.floor((gy+99)/100)+Math.floor((gy+399)/400);
+  for(i=0;i<gm;i++)gdn+=g[i];
+  if(gm>1&&((gy%4===0&&gy%100!==0)||(gy%400===0)))gdn++;
+  gdn+=gd;jdn=gdn-79;
+  jnp=Math.floor(jdn/12053);jdn%=12053;
+  jy=979+33*jnp+4*Math.floor(jdn/1461);jdn%=1461;
+  if(jdn>=366){jy+=Math.floor((jdn-1)/365);jdn=(jdn-1)%365;}
+  for(i=0;i<11&&jdn>=j[i];i++)jdn-=j[i];
+  jm=i+1;jd=jdn+1;return[jy,jm,jd];
+}
+function pad(n){return String(n).padStart(2,'0');}
+function nowJ(){var d=new Date(),j=toJalali(d.getFullYear(),d.getMonth()+1,d.getDate());return{y:j[0],m:j[1],d:j[2],h:d.getHours(),min:d.getMinutes()};}
+function jStr(y,m,d){return y+'/'+pad(m)+'/'+pad(d);}
+function fa(s){return String(s).replace(/[0-9]/g,function(c){return'۰۱۲۳۴۵۶۷۸۹'[c];});}
+var MN=['فروردین','اردیبهشت','خرداد','تیر','مرداد','شهریور','مهر','آبان','آذر','دی','بهمن','اسفند'];
+var WD=['یکشنبه','دوشنبه','سه‌شنبه','چهارشنبه','پنجشنبه','جمعه','شنبه'];
+
+function clock(){
+  var n=nowJ(),d=new Date();
+  var t=fa(pad(n.h)+':'+pad(n.min));
+  var dt=WD[d.getDay()]+' '+fa(n.d)+' '+MN[n.m-1]+' '+fa(n.y);
+  ['st','mt'].forEach(function(id){var el=document.getElementById(id);if(el)el.textContent=t;});
+  ['sd','md'].forEach(function(id){var el=document.getElementById(id);if(el)el.textContent=dt;});
+  var dd=document.getElementById('dashboard-date');if(dd)dd.textContent=dt;
+  var tdd=document.getElementById('db-today-date');if(tdd)tdd.textContent=fa(n.d)+' '+MN[n.m-1]+' '+fa(n.y);
+}
+setInterval(clock,1000);clock();
+
+/* ══ TITLE ══ */
+function updateTitle(v){
+  document.title=v||'پنل مدیریت';
+  var tb=document.getElementById('topbar-title');if(tb)tb.textContent=v||'پنل مدیریت';
+  localStorage.setItem('mgr_title',v);
+}
+(function(){var t=localStorage.getItem('mgr_title');if(t){document.getElementById('app-title').value=t;updateTitle(t);}})();
+
+/* ══ DRAWER ══ */
+function openSidebar(){document.getElementById('sidebar').classList.add('open');document.getElementById('drawer-overlay').classList.add('open');document.body.style.overflow='hidden';}
+function closeSidebar(){document.getElementById('sidebar').classList.remove('open');document.getElementById('drawer-overlay').classList.remove('open');document.body.style.overflow='';}
+
+/* ══ DATA ══ */
+function ld(k,d){try{return JSON.parse(localStorage.getItem(k))||d;}catch(e){return d;}}
+function sd(k,v){localStorage.setItem(k,JSON.stringify(v));}
+var appts=ld('mgr_appts',[]),custs=ld('mgr_custs',[]),incs=ld('mgr_incs',[]),shops=ld('mgr_shops',[]);
+
+/* ══ PAGES ══ */
+function showPage(id,el){
+  document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});
+  document.getElementById('page-'+id).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(function(n){n.classList.remove('active');});
+  if(el)el.classList.add('active');
+  closeSidebar();
+  if(id==='income')renderChart();
+  if(id==='dashboard')renderDash();
+  if(id==='appointments')renderAppts();
+  if(id==='customers')renderCusts();
+  if(id==='shopping')renderShops();
+}
+
+/* ══ MODAL ══ */
+function openModal(id){document.getElementById(id).classList.add('open');}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+document.querySelectorAll('.modal-overlay').forEach(function(m){
+  m.addEventListener('click',function(e){if(e.target===m)m.classList.remove('open');});
+});
+
+/* ══ BADGE ══ */
+function badge(s){
+  if(s==='done')return'<span class="badge badge-green">انجام شد</span>';
+  if(s==='cancelled')return'<span class="badge badge-red">لغو شد</span>';
+  return'<span class="badge badge-gold">در انتظار</span>';
+}
+
+/* ══ APPOINTMENTS ══ */
+function saveAppt(){
+  var name=document.getElementById('a-name').value.trim(),phone=document.getElementById('a-phone').value.trim(),
+      date=document.getElementById('a-date').value.trim(),time=document.getElementById('a-time').value.trim(),
+      status=document.getElementById('a-status').value;
+  if(!name||!date||!time){alert('نام، تاریخ و ساعت الزامی است');return;}
+  appts.push({id:Date.now(),name,phone,date,time,status});
+  sd('mgr_appts',appts);closeModal('m-appt');
+  ['a-name','a-phone','a-time'].forEach(function(id){document.getElementById(id).value='';});
+  renderAppts();renderDash();
+}
+function renderAppts(){
+  var tb=document.getElementById('appt-tb');
+  if(!appts.length){tb.innerHTML='<tr><td colspan="6"><div class="empty"><div class="empty-icon">📅</div><p>نوبتی ثبت نشده</p></div></td></tr>';return;}
+  tb.innerHTML=appts.slice().sort(function(a,b){return a.date<b.date?1:-1;}).map(function(a){
+    return'<tr><td><b>'+a.name+'</b></td><td style="color:var(--muted)">'+fa(a.phone||'-')+'</td><td>'+fa(a.date)+'</td><td style="color:var(--gold);font-weight:700;">'+fa(a.time)+'</td><td>'+badge(a.status)+'</td>'+
+    '<td><div style="display:flex;gap:5px;align-items:center;">'+
+    '<select onchange="chgAppt('+a.id+',this.value)" style="background:var(--base);border:none;border-radius:6px;padding:4px 8px;font-family:Vazirmatn,sans-serif;font-size:11px;color:var(--text);direction:rtl;box-shadow:2px 2px 6px #0d0d13,-1px -1px 4px #252531;">'+
+    '<option value="pending"'+(a.status==='pending'?' selected':'')+'>در انتظار</option>'+
+    '<option value="done"'+(a.status==='done'?' selected':'')+'>انجام شد</option>'+
+    '<option value="cancelled"'+(a.status==='cancelled'?' selected':'')+'>لغو</option>'+
+    '</select><button class="btn btn-danger" onclick="delAppt('+a.id+')">حذف</button></div></td></tr>';
+  }).join('');
+}
+function chgAppt(id,v){appts=appts.map(function(a){return a.id===id?Object.assign({},a,{status:v}):a;});sd('mgr_appts',appts);renderAppts();renderDash();}
+function delAppt(id){if(!confirm('حذف شود؟'))return;appts=appts.filter(function(a){return a.id!==id;});sd('mgr_appts',appts);renderAppts();renderDash();}
+
+/* ══ CUSTOMERS ══ */
+function saveCust(){
+  var fn=document.getElementById('c-fn').value.trim(),ln=document.getElementById('c-ln').value.trim(),ph=document.getElementById('c-ph').value.trim();
+  if(!fn){alert('نام الزامی است');return;}
+  var n=nowJ();custs.push({id:Date.now(),name:fn+' '+ln,phone:ph,date:jStr(n.y,n.m,n.d)});
+  sd('mgr_custs',custs);closeModal('m-cust');
+  ['c-fn','c-ln','c-ph'].forEach(function(id){document.getElementById(id).value='';});
+  renderCusts();renderDash();
+}
+function renderCusts(){
+  var tb=document.getElementById('cust-tb');
+  if(!custs.length){tb.innerHTML='<tr><td colspan="4"><div class="empty"><div class="empty-icon">👤</div><p>مشتری ثبت نشده</p></div></td></tr>';return;}
+  tb.innerHTML=custs.slice().reverse().map(function(c){
+    return'<tr><td><b>'+c.name+'</b></td><td style="color:var(--muted)">'+fa(c.phone||'-')+'</td><td style="color:var(--muted)">'+fa(c.date)+'</td>'+
+    '<td><button class="btn btn-danger" onclick="delCust('+c.id+')">حذف</button></td></tr>';
+  }).join('');
+}
+function delCust(id){if(!confirm('حذف شود؟'))return;custs=custs.filter(function(c){return c.id!==id;});sd('mgr_custs',custs);renderCusts();renderDash();}
+
+/* ══ INCOME ══ */
+function saveInc(){
+  var date=document.getElementById('i-date').value.trim(),amt=parseInt(document.getElementById('i-amt').value),note=document.getElementById('i-note').value.trim();
+  if(!date||!amt){alert('تاریخ و مبلغ الزامی است');return;}
+  incs.push({id:Date.now(),date,amount:amt,note});
+  sd('mgr_incs',incs);closeModal('m-inc');
+  ['i-date','i-amt','i-note'].forEach(function(id){document.getElementById(id).value='';});
+  renderIncTb();renderChart();renderDash();
+}
+function delInc(id){if(!confirm('حذف شود؟'))return;incs=incs.filter(function(i){return i.id!==id;});sd('mgr_incs',incs);renderIncTb();renderChart();renderDash();}
+
+function renderIncTb(){
+  var tb=document.getElementById('inc-tb');
+  if(!incs.length){tb.innerHTML='<tr><td colspan="4"><div class="empty"><div class="empty-icon">💰</div><p>درآمدی ثبت نشده</p></div></td></tr>';return;}
+  tb.innerHTML=incs.slice().reverse().map(function(i){
+    return'<tr><td style="color:var(--gold-light);font-weight:600;">'+fa(i.date)+'</td><td><b>'+fa(Number(i.amount).toLocaleString())+'</b></td><td style="color:var(--muted);font-size:12px;">'+(i.note||'—')+'</td>'+
+    '<td><button class="btn btn-danger" onclick="delInc('+i.id+')">حذف</button></td></tr>';
+  }).join('');
+  var n=nowJ(),tm=n.y+'/'+pad(n.m),lm=n.m===1?(n.y-1)+'/12':n.y+'/'+pad(n.m-1);
+  document.getElementById('inc-this').textContent=fa(incs.filter(function(i){return i.date.startsWith(tm);}).reduce(function(s,i){return s+i.amount;},0).toLocaleString());
+  document.getElementById('inc-last').textContent=fa(incs.filter(function(i){return i.date.startsWith(lm);}).reduce(function(s,i){return s+i.amount;},0).toLocaleString());
+}
+
+var chart=null;
+function renderChart(){
+  renderIncTb();
+  var n=nowJ(),months=[];
+  for(var i=5;i>=0;i--){var m=n.m-i,y=n.y;while(m<1){m+=12;y--;}months.push({key:y+'/'+pad(m),label:MN[m-1]});}
+  var data=months.map(function(mn){return incs.filter(function(i){return i.date.startsWith(mn.key);}).reduce(function(s,i){return s+i.amount;},0);});
+  var ctx=document.getElementById('income-chart').getContext('2d');
+  if(chart)chart.destroy();
+  chart=new Chart(ctx,{
+    type:'bar',
+    data:{
+      labels:months.map(function(m){return m.label;}),
+      datasets:[{
+        label:'درآمد',data:data,
+        backgroundColor:function(ctx){
+          var g=ctx.chart.ctx.createLinearGradient(0,0,0,240);
+          g.addColorStop(0,'rgba(201,168,76,0.85)');
+          g.addColorStop(1,'rgba(201,168,76,0.25)');
+          return g;
+        },
+        borderColor:'#c9a84c',borderWidth:1.5,borderRadius:8,borderSkipped:false
+      }]
+    },
+    options:{
+      responsive:true,
+      plugins:{
+        legend:{display:false},
+        tooltip:{callbacks:{label:function(c){return' '+Number(c.raw).toLocaleString()+' تومان';}}}
+      },
+      scales:{
+        x:{ticks:{color:'#7a7890',font:{family:'Vazirmatn',size:11}},grid:{color:'rgba(42,42,56,0.5)'}},
+        y:{display:false,grid:{display:false}}
+      }
+    }
+  });
+}
+
+/* ══ SHOPPING ══ */
+function saveShop(){
+  var name=document.getElementById('sh-name').value.trim(),price=document.getElementById('sh-price').value;
+  if(!name){alert('نام کالا الزامی است');return;}
+  shops.push({id:Date.now(),name,price:price?parseInt(price):null,done:false});
+  sd('mgr_shops',shops);closeModal('m-shop');
+  ['sh-name','sh-price'].forEach(function(id){document.getElementById(id).value='';});
+  renderShops();renderDash();
+}
+function togShop(id){shops=shops.map(function(s){return s.id===id?Object.assign({},s,{done:!s.done}):s;});sd('mgr_shops',shops);renderShops();renderDash();}
+function delShop(id){shops=shops.filter(function(s){return s.id!==id;});sd('mgr_shops',shops);renderShops();renderDash();}
+
+function renderShops(){
+  var pend=shops.filter(function(s){return!s.done;}),done=shops.filter(function(s){return s.done;});
+  function html(arr){
+    if(!arr.length)return'<div class="empty" style="padding:28px;"><p>خالی</p></div>';
+    return arr.map(function(s){
+      return'<div class="shop-item"><div class="shop-check'+(s.done?' checked':'')+'" onclick="togShop('+s.id+')"></div>'+
+      '<div class="shop-name'+(s.done?' done':'')+'">'+s.name+'</div>'+
+      '<div class="shop-price">'+(s.price?fa(s.price.toLocaleString())+' ت':'')+'</div>'+
+      '<button class="btn btn-danger" onclick="delShop('+s.id+')" style="padding:3px 8px;font-size:11px;">×</button></div>';
+    }).join('');
+  }
+  document.getElementById('shop-pending').innerHTML=html(pend);
+  document.getElementById('shop-done').innerHTML=html(done);
+  var total=pend.reduce(function(s,i){return s+(i.price||0);},0);
+  document.getElementById('shop-total').textContent=total?'جمع: '+fa(total.toLocaleString())+' ت':'';
+}
+
+/* ══ DASHBOARD ══ */
+function renderDash(){
+  var n=nowJ(),today=jStr(n.y,n.m,n.d);
+  var ta=appts.filter(function(a){return a.date===today;});
+  var ta_done=ta.filter(function(a){return a.status==='done';});
+  var ti=incs.filter(function(i){return i.date===today;}).reduce(function(s,i){return s+i.amount;},0);
+  var tm=n.y+'/'+pad(n.m);
+  var monthInc=incs.filter(function(i){return i.date.startsWith(tm);}).reduce(function(s,i){return s+i.amount;},0);
+
+  document.getElementById('s1').textContent=fa(ta.length);
+  document.getElementById('s3').textContent=fa(custs.length);
+  document.getElementById('s4').textContent=fa(shops.filter(function(s){return!s.done;}).length);
+  document.getElementById('s5').textContent=fa(ta_done.length);
+
+  // income banner
+  document.getElementById('db-income').textContent=fa(ti.toLocaleString());
+  document.getElementById('db-income-date').textContent=ti>0?'تومان — امروز ثبت شده':'هنوز درآمدی امروز ثبت نشده';
+  var mi=document.getElementById('db-month-income');
+  if(mi)mi.textContent='این ماه: '+fa(monthInc.toLocaleString())+' تومان';
+
+  // today appointments — card style
+  var da=document.getElementById('dash-appts');
+  if(!ta.length){
+    da.innerHTML='<div class="empty"><div class="empty-icon">📅</div><p>نوبتی برای امروز ثبت نشده</p></div>';
+  } else {
+    var sorted=ta.slice().sort(function(a,b){return a.time>b.time?1:-1;});
+    da.innerHTML=sorted.map(function(a){
+      return'<div class="appt-card">'+
+        '<div class="appt-time-box"><div class="appt-time-num">'+fa(a.time)+'</div><div class="appt-time-lbl">ساعت</div></div>'+
+        '<div class="appt-info"><div class="appt-name">'+a.name+'</div><div class="appt-phone">'+fa(a.phone||'—')+'</div></div>'+
+        badge(a.status)+
+      '</div>';
+    }).join('');
+  }
+
+  // shopping
+  var ps=shops.filter(function(s){return!s.done;});
+  var ds=document.getElementById('dash-shop');
+  var dst=document.getElementById('dash-shop-total');
+  var shTotal=ps.reduce(function(s,i){return s+(i.price||0);},0);
+  if(dst)dst.textContent=shTotal?fa(shTotal.toLocaleString())+' ت':'';
+
+  if(!ps.length){
+    ds.innerHTML='<div class="empty"><div class="empty-icon">🛒</div><p>لیست خرید خالی</p></div>';
+  } else {
+    ds.innerHTML=ps.slice(0,6).map(function(s){
+      return'<div class="dash-shop-item">'+
+        '<div class="dash-shop-dot"></div>'+
+        '<div class="dash-shop-name">'+s.name+'</div>'+
+        '<div class="dash-shop-price">'+(s.price?fa(s.price.toLocaleString())+' ت':'')+'</div>'+
+      '</div>';
+    }).join('');
+  }
+}
+
+/* ══ FILTER ══ */
+function filterTable(id,q){
+  document.getElementById(id).querySelectorAll('tr').forEach(function(r){r.style.display=r.textContent.includes(q)?'':'none';});
+}
+
+/* ══ INIT ══ */
+renderDash();
+</script>
+</body>
+</html>
